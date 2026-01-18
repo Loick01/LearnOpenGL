@@ -1,6 +1,9 @@
 #include <glad/glad.h> // Must be include before GLFW
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <math.h>
+
+#include "shader.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
@@ -43,76 +46,16 @@ int main()
     glViewport(0, 0, 800, 600);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    
-    /*
-    float vertices[] = { // Normalized Device Coordinates
-        0.5f, 0.5f, 0.f, // First triangle
-        0.5f, -0.5f, 0.f,
-        -0.5f, 0.5f, 0.f,
-
-        0.5f, -0.5f, 0.f, // Second triangle
-        -0.5f, -0.5f, 0.f,
-        -0.5f, 0.5f, 0.f
-    };
-    */
 
     float vertices[] = {
-        -0.5f, -0.5f, 0.f,
-        0.5f, -0.5f, 0.f,
-        -0.5f, 0.5f, 0.f
+        -0.5f, -0.5f, 0.f, 1.f, 0.f, 0.f,
+        0.5f, -0.5f, 0.f, 0.f, 1.f, 0.f, 
+        0.f, 0.5f, 0.f, 0.f, 0.f, 1.f
     };
 
     unsigned int indices[] = {
         0, 1, 2
     };
-
-    const char* vertexShaderSource = 
-    "#version 460 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "out vec4 vertexColor;\n"
-    "void main()\n"
-    "{\n"
-    "gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "vertexColor = vec4(0.5, 0., 0., 1.);\n"
-    "}\0";
-
-    const char* fragmentShaderSource = 
-    "#version 460 core\n"
-    "out vec4 FragColor;\n"
-    "in vec4 vertexColor;\n"
-    "void main()\n"
-    "{\n"
-    "FragColor = vertexColor;\n"
-    "}\0";
-
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    int successVertexShader;
-    int successFragmentShader;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &successVertexShader);
-    if (!successVertexShader){
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cerr << "Error in vertex shader : " << infoLog << "\n";
-    }
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &successFragmentShader);
-    if (!successFragmentShader){
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cerr << "Error in fragment shader : " << infoLog << "\n";
-    }
-
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
     
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -127,19 +70,31 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
+    Shader shader("../shaders/shader.vs", "../shaders/shader.fs");
+    // Don't need to use glUseProgram(shaderProgram) to find the uniform location
+    // int vertexColorLocation = glGetUniformLocation(shaderProgram, "uniformColor");
+    // Now I use SetInt, SetFloat, ... from Shader class
+    shader.Use();
+    shader.SetFloat("horizontalOffset", 0.3f); // Must use shader program before sending uniforms to shader
+
     while (!glfwWindowShouldClose(window)){
         processInput(window);
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
+        shader.Use();
+        float timeValue = glfwGetTime();
+        float greenValue = (sin(timeValue*4.0f)/2.f)+0.5f;
+        shader.SetFloat("uniformGreenValue", greenValue);
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         
