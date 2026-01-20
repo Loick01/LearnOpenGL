@@ -46,9 +46,9 @@ int main()
 
     float vertices[] = {
         -0.5f, -0.5f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f,
-        0.5f, -0.5f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f,
-        -0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f, 0.f, 1.f,
-        0.5f, 0.5f, 0.f, 1.f, 1.f, 1.f, 1.f, 1.f
+        0.5f, -0.5f, 0.f, 0.f, 1.f, 0.f, 2.f, 0.f,
+        -0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f, 0.f, 2.f,
+        0.5f, 0.5f, 0.f, 1.f, 1.f, 1.f, 2.f, 2.f
     };
 
     unsigned int indices[] = {
