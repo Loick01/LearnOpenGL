@@ -182,19 +182,25 @@ int main()
     shader.SetInt("texture2", 1);
 
     glm::mat4 model = glm::mat4(1.f);
-    // model = glm::rotate(model, glm::radians(-55.f), glm::vec3(1.f,0.f,0.f));
 
-    glm::mat4 view = glm::mat4(1.f);
-    view = glm::translate(view, glm::vec3(0.f,0.f,-3.f));
+    glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 3.f);
+    glm::vec3 cameraTarget = glm::vec3(0.f);
+    glm::vec3 up = glm::vec3(0.f, 1.f, 0.f); // World space up vector
+    /*
+    glm::vec3 cameraDirection = glm::normalize(cameraPos-cameraTarget);
+    glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+    glm::vec3 cameraUp = glm::normalize(glm::cross(cameraDirection, cameraRight));
+    */
+    // glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, up);
 
     glm::mat4 projection = glm::perspective(glm::radians(45.f), 800.f/600.f, 0.1f, 100.f);
 
     int modelLocation = glGetUniformLocation(shader.m_id, "model");
-    // glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
     int viewLocation = glGetUniformLocation(shader.m_id, "view");
-    glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
     int projectionLocation = glGetUniformLocation(shader.m_id, "projection");
     glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+
+    const float radius = 10.f;
 
     while (!glfwWindowShouldClose(window)){
         processInput(window);
@@ -202,15 +208,18 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         shader.Use();
-
-        //model = glm::rotate(model, (float)glfwGetTime()*glm::radians(.2f), glm::vec3(0.5f,1.f,0.f));
-        //glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
         glBindVertexArray(VAO);
+
+        float camX = sin(glfwGetTime())*radius;
+        float camZ = cos(glfwGetTime())*radius;
+        glm::mat4 view = glm::lookAt(glm::vec3(camX, 0.f, camZ), cameraTarget, up); 
+        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
+
         for (unsigned int i=0 ; i<10 ; i++){
             glm::mat4 model = glm::mat4(1.f);
             model = glm::translate(model, cubePositions[i]);
