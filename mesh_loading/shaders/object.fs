@@ -1,11 +1,10 @@
 #version 460 core
 
-#define NR_POINT_LIGHT 4
-
 struct Material
 {
-    sampler2D diffuse;
-    sampler2D specular;
+    // Add texture_diffuse1... and texture_specular1... here ?
+    sampler2D diffuse; // Remove ?
+    sampler2D specular; // Remove ?
     float shininess;
 };
 
@@ -44,11 +43,14 @@ in vec3 Normal;
 in vec3 FragPos;
 out vec4 FragColor;
 
-uniform Material material;
-uniform DirLight dirLight;
-uniform PointLight pointLights[NR_POINT_LIGHT];
-uniform SpotLight spotLight;
 uniform vec3 viewPos;
+uniform Material material;
+
+uniform sampler2D texture_diffuse1;
+uniform sampler2D texture_diffuse2;
+uniform sampler2D texture_diffuse3;
+uniform sampler2D texture_specular1;
+uniform sampler2D texture_specular2;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 {
@@ -121,14 +123,6 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 
 void main()
 {
-    vec3 viewDir = normalize(viewPos-FragPos);
-    vec3 norm = normalize(Normal);
-
-    // vec3 result = CalcDirLight(dirLight, norm, viewDir);
-    vec3 result = vec3(0.);
-    for (int i = 0 ; i < NR_POINT_LIGHT ; i++){
-        result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
-    }
-    // result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
+    vec3 result = vec3(0.0);
     FragColor = vec4(result, 1.0);
 }
