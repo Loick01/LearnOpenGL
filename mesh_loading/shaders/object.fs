@@ -1,5 +1,7 @@
 #version 460 core
 
+#define NR_POINT_LIGHT 3
+
 struct Material
 {
     sampler2D texture_diffuse1;
@@ -45,6 +47,9 @@ out vec4 FragColor;
 uniform vec3 viewPos;
 uniform Material material;
 
+uniform PointLight pointLights[NR_POINT_LIGHT];
+uniform SpotLight spotLight;
+
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 {
     // Ambient
@@ -82,7 +87,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = light.specular * spec * texture(material.texture_specular1, TexCoords).rgb;
 
-    ambient *= attenuation;
+    // ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;
 
@@ -116,5 +121,12 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 
 void main()
 {
-    FragColor = texture(material.texture_diffuse1, TexCoords);
+    vec3 viewDir = normalize(viewPos-FragPos);
+    vec3 norm = normalize(Normal);
+    vec3 result = vec3(0.0);
+    for (int i = 0 ; i < NR_POINT_LIGHT ; i++){
+        result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+    }
+    // result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
+    FragColor = vec4(result, 1.0);
 }
