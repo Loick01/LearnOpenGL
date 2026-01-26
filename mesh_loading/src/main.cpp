@@ -7,12 +7,9 @@
 #include <iostream>
 #include <math.h>
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 #include "camera.hpp"
 #include "mesh.hpp"
+#include "model.hpp"
 #include "shader.hpp"
 #include "stb_image.h"
 
@@ -92,6 +89,8 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
+    stbi_set_flip_vertically_on_load(true);
+
     glEnable(GL_DEPTH_TEST); // Disabled by default
 
     // -----------------------------------
@@ -104,6 +103,8 @@ int main()
     int viewLocation = glGetUniformLocation(objectShader.m_id, "view");
     int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
 
+    Model backpack_model("../../assets/backpack/backpack.obj");
+    
     float deltaTime = 0.f;
     float lastFrame = 0.f;
 
@@ -124,6 +125,12 @@ int main()
 
         glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
         glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
+
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        backpack_model.Draw(objectShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
