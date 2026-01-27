@@ -124,10 +124,25 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    glEnable(GL_DEPTH_TEST); // Disabled by default
     // GL_ALWAYS, GL_NEVER, GL_LESS (default), GL_EQUAL, GL_LEQUAL, ...
     // glDepthFunc(GL_ALWAYS);
 
+    // glEnable(GL_STENCIL_TEST);
+    // glStencilMask(0xFF);
+    
+    // glStencilFunc(GL_EQUAL, 1, 0xFF); 
+    // Parameter 1 : stencil test function (GL_ALWAYS, GL_NEVER, GL_LESS, GL_LEQUAL, GL_GREATER, ...)
+    // Parameter 2 : reference value for the stencil test
+    // Parameter 3 : mask that is And-ed with the ref value (param 2) and the stored stencil value
+    
+    // glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP); // Default
+    // GL_KEEP, GL_ZERO, GL_REPLACE, GL_INCR, GL_INCR_WRAP, GL_DECR, GL_DECR_WRAP, GL_INVERT
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    
     float cube_vertices[] = {
         // Back face
         -0.5f, -0.5f, -0.5f, 1.f, 0.f,
@@ -239,6 +254,7 @@ int main()
     // OBJECT SHADER
 
     Shader objectShader("../shaders/object.vs", "../shaders/object.fs");
+    Shader borderShader("../shaders/object.vs", "../shaders/border.fs");
     objectShader.Use();
 
     int modelLocation = glGetUniformLocation(objectShader.m_id, "model");
@@ -246,8 +262,14 @@ int main()
     int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
     objectShader.SetInt("objectTexture", 0);
 
-    // -----------------------------------
+    borderShader.Use();
+    int borderModelLocation = glGetUniformLocation(borderShader.m_id, "model");
+    int borderViewLocation = glGetUniformLocation(borderShader.m_id, "view");
+    int borderProjectionLocation = glGetUniformLocation(borderShader.m_id, "projection");
 
+    // -----------------------------------
+    const glm::vec3 cube1Position = glm::vec3(-1.0f, 0.01f, -1.0f);
+    const glm::vec3 cube2Position = glm::vec3(2.0f, 0.01f, 0.0f);
     float deltaTime = 0.f;
     float lastFrame = 0.f;
 
@@ -258,34 +280,21 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        objectShader.Use();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+        borderShader.Use();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.f/600.f, 0.1f, 100.f);
-        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
-
         glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
+        glUniformMatrix4fv(borderProjectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(borderViewLocation, 1, GL_FALSE, glm::value_ptr(view));
+
+        objectShader.Use();
+        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
         glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
 
         // -----------------------------------
-        // CUBE OBJECT
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
-
-        glBindVertexArray(cubeVAO);
-        glm::mat4 cube_model = glm::mat4(1.f);
-        cube_model = glm::translate(cube_model, glm::vec3(-1.0f, 0.01f, -1.0f));
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        cube_model = glm::mat4(1.f);
-        cube_model = glm::translate(cube_model, glm::vec3(2.0f, 0.01f, 0.0f));
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        // -----------------------------------
         // FLOOR OBJECT
+        glStencilMask(0x00); // Don't write in stencil buffer while rendering the floor
         glBindTexture(GL_TEXTURE_2D, floorTexture);
 
         glBindVertexArray(floorVAO);
@@ -293,6 +302,45 @@ int main()
         glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(floor_model));
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+        // -----------------------------------
+        // CUBE OBJECT
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilMask(0xFF); // Enable writing in the stencil buffer
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
+
+        glBindVertexArray(cubeVAO);
+        glm::mat4 cube_model = glm::mat4(1.f);
+        cube_model = glm::translate(cube_model, cube1Position);
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        cube_model = glm::mat4(1.f);
+        cube_model = glm::translate(cube_model, cube2Position);
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00); // Don't need anymore to write in the stencil buffer
+        glDisable(GL_DEPTH_TEST);
+
+        borderShader.Use();
+        cube_model = glm::mat4(1.f);
+        cube_model = glm::translate(cube_model, cube1Position);
+        cube_model = glm::scale(cube_model, glm::vec3(1.1f));
+        glUniformMatrix4fv(borderModelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        cube_model = glm::mat4(1.f);
+        cube_model = glm::translate(cube_model, cube2Position);
+        cube_model = glm::scale(cube_model, glm::vec3(1.1f));
+        glUniformMatrix4fv(borderModelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
         // -----------------------------------
 
         glfwSwapBuffers(window);
