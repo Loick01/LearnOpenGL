@@ -118,7 +118,6 @@ int main()
     }
 
     glViewport(0, 0, 800, 600);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -187,10 +186,22 @@ int main()
         0, 2, 3
     };
 
+    float quad_vertices[] = {
+        -1.f, -1.f, 0.f, 0.f,
+        1.f, -1.f, 1.f, 0.f,
+        -1.f, 1.f, 0.f, 1.f,
+        1.f, 1.f, 1.f, 1.f
+    };
+
+    unsigned int quad_indices[] = {
+        0, 1, 2,
+        2, 1, 3
+    };
+
     // -----------------------------------
     // LOAD THE CUBE OBJECT TEXTURES
 
-    unsigned int cubeTexture = loadTexture("../../assets/marble.jpg");
+    unsigned int cubeTexture = loadTexture("../../assets/container.jpg");
     unsigned int floorTexture = loadTexture("../../assets/metal.png");
 
     // -----------------------------------
@@ -228,22 +239,20 @@ int main()
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floorEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
-    // -----------------------------------
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // -----------------------------------
     // OBJECT SHADER
 
     Shader objectShader("../shaders/object.vs", "../shaders/object.fs");
+    Shader quadShader("../shaders/quad.vs", "../shaders/quad.fs");
     objectShader.Use();
 
     int modelLocation = glGetUniformLocation(objectShader.m_id, "model");
     int viewLocation = glGetUniformLocation(objectShader.m_id, "view");
     int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
     objectShader.SetInt("objectTexture", 0);
+
+    quadShader.SetInt("screenTexture", 0);
 
     // -----------------------------------
     // FRAMEBUFFER
@@ -288,8 +297,33 @@ int main()
 
     // -----------------------------------
 
+    unsigned int quadVAO, quadVBO, quadEBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glGenBuffers(1, &quadEBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
+    
+    glBindVertexArray(quadVAO);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quad_indices), quad_indices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // -----------------------------------
+
     float deltaTime = 0.f;
     float lastFrame = 0.f;
+
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     while (!glfwWindowShouldClose(window)){
         processInput(window, deltaTime);
@@ -298,8 +332,11 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+        glEnable(GL_DEPTH_TEST);
+
         objectShader.Use();
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.f/600.f, 0.1f, 100.f);
@@ -335,6 +372,15 @@ int main()
 
         // -----------------------------------
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Back to defaulot framebuffer
+        glClearColor(1.f, 1.f, 1.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        quadShader.Use();
+        glBindVertexArray(quadVAO);
+        glDisable(GL_DEPTH_TEST);
+        glBindTexture(GL_TEXTURE_2D, framebuffer_texture);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -343,6 +389,8 @@ int main()
     glDeleteBuffers(1, &cubeVBO);
     glDeleteVertexArrays(1, &floorVAO);
     glDeleteBuffers(1, &floorVBO);
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
 
     glDeleteFramebuffers(1, &FBO);
     
