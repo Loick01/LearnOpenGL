@@ -240,16 +240,30 @@ int main()
     // -----------------------------------
     // OBJECT SHADER
 
-    Shader objectShader("../shaders/object.vs", "../shaders/object.fs");
+    Shader objectShader("../shaders/object.vs", "../shaders/object2.fs"); // Draw the first cube
+    Shader object2Shader("../shaders/object.vs", "../shaders/object.fs"); // Draw the second cube
     objectShader.Use();
 
     int modelLocation = glGetUniformLocation(objectShader.m_id, "model");
-    int viewLocation = glGetUniformLocation(objectShader.m_id, "view");
-    int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
     objectShader.SetInt("objectTexture", 0);
 
     // -----------------------------------
+    // Uniform buffer 
+    unsigned int uniformBlockIndexCube1 = glGetUniformBlockIndex(objectShader.m_id, "Matrices");
+    unsigned int uniformBlockIndexCube2 = glGetUniformBlockIndex(object2Shader.m_id, "Matrices");
+    glUniformBlockBinding(objectShader.m_id, uniformBlockIndexCube1, 0);
+    glUniformBlockBinding(object2Shader.m_id, uniformBlockIndexCube2, 0);
 
+    unsigned int UBO;
+    glGenBuffers(1, &UBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+    glBufferData(GL_UNIFORM_BUFFER, 2*sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
+    // glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, 2*sizeof(glm::mat4));
+
+    // -----------------------------------
+    
     float deltaTime = 0.f;
     float lastFrame = 0.f;
 
@@ -261,26 +275,33 @@ int main()
         lastFrame = currentFrame;
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        objectShader.Use();
 
+        // -----------------------------------
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.f/600.f, 0.1f, 100.f);
-        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
-
         glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
-        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
 
+        // Use uniform buffer object when multiple shaders use the same set of uniforms
+        glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        
         // -----------------------------------
         // CUBE OBJECT
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
 
         glBindVertexArray(cubeVAO);
+        
+        // First cube
+        objectShader.Use();
         glm::mat4 cube_model = glm::mat4(1.f);
         cube_model = glm::translate(cube_model, glm::vec3(-1.0f, 0.01f, -1.0f));
         glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
+        // Second cube
+        object2Shader.Use();
         cube_model = glm::mat4(1.f);
         cube_model = glm::translate(cube_model, glm::vec3(2.0f, 0.01f, 0.0f));
         glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
