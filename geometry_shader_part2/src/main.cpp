@@ -95,15 +95,18 @@ int main()
     glEnable(GL_CULL_FACE);
 
     // -----------------------------------
-    // OBJECT SHADER
+    // SHADERS
 
     Shader objectShader("../shaders/object.vs", "../shaders/object.gs", "../shaders/object.fs");
-    objectShader.Use();
+    Shader normalShader("../shaders/normal.vs", "../shaders/normal.gs", "../shaders/normal.fs");
 
     int modelLocation = glGetUniformLocation(objectShader.m_id, "model");
     int viewLocation = glGetUniformLocation(objectShader.m_id, "view");
     int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
 
+    int modelLocationNormal = glGetUniformLocation(normalShader.m_id, "model");
+    int viewLocationNormal = glGetUniformLocation(normalShader.m_id, "view");
+    int projectionLocationNormal = glGetUniformLocation(normalShader.m_id, "projection");
     // -----------------------------------
 
     Model backpack_model("../../assets/backpack/backpack.obj");
@@ -120,17 +123,25 @@ int main()
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        objectShader.Use();
+        objectShader.SetFloat("time", currentFrame);
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.f/600.f, 0.1f, 100.f);
-        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
-
         glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
-        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
         
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
         backpack_model.Draw(objectShader);
+
+        // Uncomment to display normals
+        // normalShader.Use();
+        // glUniformMatrix4fv(projectionLocationNormal, 1, GL_FALSE, glm::value_ptr(projection));
+        // glUniformMatrix4fv(viewLocationNormal, 1, GL_FALSE, glm::value_ptr(view));
+        // glUniformMatrix4fv(modelLocationNormal, 1, GL_FALSE, glm::value_ptr(model));
+        // backpack_model.Draw(normalShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
