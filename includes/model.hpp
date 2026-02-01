@@ -19,10 +19,11 @@ class Model
                 mesh.Draw(shader);
         }
         
-    private:
         std::vector<Mesh> m_meshes;
-        std::string m_directory;
         std::vector<Texture> m_textures_loaded; // 21.2 An optimization
+        
+    private:
+        std::string m_directory;
 
         void processNode(aiNode* node, const aiScene* scene){
             for (unsigned int i = 0 ; i < node->mNumMeshes ; i++){

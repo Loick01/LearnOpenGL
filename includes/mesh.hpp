@@ -57,9 +57,11 @@ class Mesh
             glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
         }
+
+        unsigned int VAO;
     
     private:
-        unsigned int VAO, VBO, EBO;
+        unsigned int VBO, EBO;
         void setupMesh(){
             glGenVertexArrays(1, &VAO);
             glGenBuffers(1, &VBO);
