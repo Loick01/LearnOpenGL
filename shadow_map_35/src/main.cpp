@@ -104,7 +104,8 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Hello Triangle", NULL, NULL);
+    const unsigned int SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
+    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello Triangle", NULL, NULL);
     if (window == NULL){
         std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
@@ -117,7 +118,6 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -212,7 +212,7 @@ int main()
     // LOAD TEXTURES
 
     unsigned int woodTexture = loadTexture("../../assets/wood.png");
-
+    
     // -----------------------------------
 
     // CUBE 
@@ -270,10 +270,13 @@ int main()
     int modelLocation = glGetUniformLocation(objectShader.m_id, "model");
     int viewLocation = glGetUniformLocation(objectShader.m_id, "view");
     int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
+    int lightSpaceMatrixLocation = glGetUniformLocation(objectShader.m_id, "lightSpaceMatrix");
+    int shadowMapLocation = glGetUniformLocation(objectShader.m_id, "shadowMap");
 
     objectShader.SetInt("material.diffuse", 0);
-    objectShader.SetVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
-    objectShader.SetFloat("material.shininess", 32.f);
+    objectShader.SetInt("shadowMap", 1);
+    objectShader.SetVec3("material.specular", glm::vec3(0.5f));
+    objectShader.SetFloat("material.shininess", 16.f);
 
     // Directional light
     objectShader.SetVec3("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
@@ -281,11 +284,51 @@ int main()
     objectShader.SetVec3("dirLight.diffuse", glm::vec3(0.9f));
     objectShader.SetVec3("dirLight.specular", glm::vec3(1.f));
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, woodTexture);
+    Shader depthMapShader("../shaders/depth_map.vs", "../shaders/depth_map.fs");
+    depthMapShader.Use();
+    
+    int depthMap_lightSpaceMatrixLocation = glGetUniformLocation(depthMapShader.m_id, "lightSpaceMatrix");
+    int depthMap_modelLocation = glGetUniformLocation(depthMapShader.m_id, "model");
 
+    // Because a directionnal light is used, projection matrix must be orthographic
+    float near_plane = 1.f, far_plane = 7.5f;
+    glm::mat4 depthMap_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f, near_plane, far_plane);
+
+    glm::vec3 lightPosition = glm::vec3(-2.f, 4.f, 2.f); // Directionnal light doesn't need a position, but we need it for the view matrix
+    glm::vec3 lightLookAt = glm::vec3(0.f);
+    glm::vec3 lightUpVector = glm::vec3(0.f, 1.f, 0.f);
+    glm::mat4 depthMap_view = glm::lookAt(lightPosition, lightLookAt, lightUpVector); 
+    
+    glm::mat4 lightSpaceMatrix = depthMap_projection * depthMap_view;
+    glUniformMatrix4fv(depthMap_lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+    objectShader.Use();
+    objectShader.SetVec3("lightPos", lightPosition);
+    glUniformMatrix4fv(lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+    
     // -----------------------------------
+    // DEPTH MAP
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
 
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    unsigned int depthMap;
+    glGenTextures(1, &depthMap);
+
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE); // Will not render any color data
+    glReadBuffer(GL_NONE); // Will not render any color data
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // -----------------------------------
     float deltaTime = 0.f;
     float lastFrame = 0.f;
 
@@ -297,26 +340,73 @@ int main()
         lastFrame = currentFrame;
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        objectShader.Use();
-        objectShader.SetVec3("viewPos", camera.Position);
         
+        // -----------------------------------
+        // RENDER THE DEPTH MAP (RENDER THE SCENE FROM THE LIGHT POV)
+
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        // glActiveTexture(GL_TEXTURE0); // ???
+        // glBindTexture(GL_TEXTURE_2D, woodTexture); // ???
+        
+        depthMapShader.Use();
+        
+        // NOW THE SCENE
         // -----------------------------------
         // FLOOR
         
         glBindVertexArray(floorVAO);
         glm::mat4 floor_model = glm::mat4(1.f);
+        glUniformMatrix4fv(depthMap_modelLocation, 1, GL_FALSE, glm::value_ptr(floor_model));
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        
+        // -----------------------------------
+        // CUBES
+        
+        glBindVertexArray(cubeVAO);
+        for (unsigned int i = 0 ; i < nrCube ; i++){
+            glm::mat4 cube_model = cubeTransformations[i];
+            glUniformMatrix4fv(depthMap_modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        }
+
+        // -----------------------------------
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // -----------------------------------
+        // RENDER THE SCENE
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+        objectShader.Use();
+        objectShader.SetVec3("viewPos", camera.Position);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, woodTexture);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f);
+        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+
+        glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
+        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
+
+        glUniformMatrix4fv(shadowMapLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+        // -----------------------------------
+        // FLOOR
+        
+        glBindVertexArray(floorVAO);
+        floor_model = glm::mat4(1.f);
         glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(floor_model));
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         
         // -----------------------------------
         // CUBES
-
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.f/600.f, 0.1f, 100.f);
-        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
-
-        glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
-        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
         
         glBindVertexArray(cubeVAO);
         for (unsigned int i = 0 ; i < nrCube ; i++){
