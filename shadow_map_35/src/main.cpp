@@ -262,6 +262,21 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // -----------------------------------
+    // LIGHT
+
+    glm::vec3 lightPosition = glm::vec3(-2.f, 4.f, -1.f); // Directionnal light doesn't need a position, but we need it for the view matrix
+    glm::vec3 lightLookAt = glm::vec3(0.f);
+    glm::vec3 lightUpVector = glm::vec3(0.f, 1.f, 0.f);
+
+    // Because a directionnal light is used, projection matrix must be orthographic
+    float near_plane = 1.f, far_plane = 7.5f;
+    glm::mat4 depthMap_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f, near_plane, far_plane);
+
+    glm::mat4 depthMap_view = glm::lookAt(lightPosition, lightLookAt, lightUpVector); 
+    
+    glm::mat4 lightSpaceMatrix = depthMap_projection * depthMap_view;
+    
+    // -----------------------------------
     // SHADERS
 
     Shader objectShader("../shaders/object.vs", "../shaders/object.fs");
@@ -278,33 +293,21 @@ int main()
     objectShader.SetVec3("material.specular", glm::vec3(0.5f));
     objectShader.SetFloat("material.shininess", 16.f);
 
-    // Directional light
-    objectShader.SetVec3("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
-    objectShader.SetVec3("dirLight.ambient", glm::vec3(0.3f));
-    objectShader.SetVec3("dirLight.diffuse", glm::vec3(0.9f));
-    objectShader.SetVec3("dirLight.specular", glm::vec3(1.f));
+    // Light
+    objectShader.SetVec3("lightPos", lightPosition);
+    objectShader.SetVec3("light.ambient", glm::vec3(0.3f));
+    objectShader.SetVec3("light.diffuse", glm::vec3(0.9f));
+    objectShader.SetVec3("light.specular", glm::vec3(1.f));
 
+    glUniformMatrix4fv(lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+    
     Shader depthMapShader("../shaders/depth_map.vs", "../shaders/depth_map.fs");
     depthMapShader.Use();
     
     int depthMap_lightSpaceMatrixLocation = glGetUniformLocation(depthMapShader.m_id, "lightSpaceMatrix");
     int depthMap_modelLocation = glGetUniformLocation(depthMapShader.m_id, "model");
 
-    // Because a directionnal light is used, projection matrix must be orthographic
-    float near_plane = 1.f, far_plane = 7.5f;
-    glm::mat4 depthMap_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f, near_plane, far_plane);
-
-    glm::vec3 lightPosition = glm::vec3(-2.f, 4.f, 2.f); // Directionnal light doesn't need a position, but we need it for the view matrix
-    glm::vec3 lightLookAt = glm::vec3(0.f);
-    glm::vec3 lightUpVector = glm::vec3(0.f, 1.f, 0.f);
-    glm::mat4 depthMap_view = glm::lookAt(lightPosition, lightLookAt, lightUpVector); 
-    
-    glm::mat4 lightSpaceMatrix = depthMap_projection * depthMap_view;
     glUniformMatrix4fv(depthMap_lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
-
-    objectShader.Use();
-    objectShader.SetVec3("lightPos", lightPosition);
-    glUniformMatrix4fv(lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
     
     // -----------------------------------
     // DEPTH MAP
@@ -317,8 +320,8 @@ int main()
 
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     
@@ -344,13 +347,14 @@ int main()
         // -----------------------------------
         // RENDER THE DEPTH MAP (RENDER THE SCENE FROM THE LIGHT POV)
 
+        depthMapShader.Use();
+        
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
-        // glActiveTexture(GL_TEXTURE0); // ???
-        // glBindTexture(GL_TEXTURE_2D, woodTexture); // ???
-        
-        depthMapShader.Use();
+        glActiveTexture(GL_TEXTURE0); // ???
+        glBindTexture(GL_TEXTURE_2D, woodTexture); // ???
+        glCullFace(GL_FRONT);
         
         // NOW THE SCENE
         // -----------------------------------
@@ -388,6 +392,7 @@ int main()
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
+        glCullFace(GL_BACK);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f);
         glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
