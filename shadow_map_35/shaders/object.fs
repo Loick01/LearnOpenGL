@@ -13,6 +13,11 @@ struct Light
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    // Used for attenuation
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 in VS_OUT {
@@ -46,6 +51,11 @@ vec3 CalcLight(Light light, vec3 normal, vec3 viewDir, float shadowValue)
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);  
     vec3 specular = light.specular * spec * material.specular;
 
+    // Light attenuation
+    float distance = length(lightPos - fs_in.FragPos);
+    float attenuation = 1.0 / (light.constant + light.linear*distance + light.quadratic * (distance*distance));
+    diffuse *= attenuation;
+    specular *= attenuation;
     return texture(material.diffuse, fs_in.TexCoords).rgb * (ambient + (1.0-shadowValue)*(diffuse + specular));
 }
 
@@ -74,7 +84,7 @@ float GetShadowValue(vec4 fragPosLigthSpace){
     }
     isShadow /= 9.0;
 
-    //float isShadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    // float isShadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
     
     return isShadow;
 }

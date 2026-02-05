@@ -291,7 +291,11 @@ int main()
     objectShader.SetInt("material.diffuse", 0);
     objectShader.SetInt("shadowMap", 1);
     objectShader.SetVec3("material.specular", glm::vec3(0.5f));
-    objectShader.SetFloat("material.shininess", 16.f);
+    objectShader.SetFloat("material.shininess", 32.f);
+
+    objectShader.SetFloat("light.constant", 0.5f);
+    objectShader.SetFloat("light.linear", 0.02f);
+    objectShader.SetFloat("light.quadratic", 0.01f);
 
     // Light
     objectShader.SetVec3("lightPos", lightPosition);
@@ -320,10 +324,12 @@ int main()
 
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 }; // Could also use GL_CLAMP_TO_EDGE instead of setting Gl_TEXTURE_BORDER_COLOR
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
