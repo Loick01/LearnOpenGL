@@ -14,10 +14,16 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform bool reverse_normal;
+
 void main()
 {
     vs_out.FragPos = vec3(model * vec4(aPos, 1.0)); // World space position of the fragment
     gl_Position = projection * view * vec4(vs_out.FragPos, 1.0);
-    vs_out.Normal = mat3(transpose(inverse(model))) * aNormal;  
+    if (reverse_normal){
+        vs_out.Normal = mat3(transpose(inverse(model))) * (-1.0*aNormal);  
+    }else{
+        vs_out.Normal = mat3(transpose(inverse(model))) * aNormal;  
+    }
     vs_out.TexCoords = aTexCoords;
 };

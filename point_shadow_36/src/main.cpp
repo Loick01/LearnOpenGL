@@ -129,35 +129,35 @@ int main()
 
     float cube_vertices[] = {
         // Back face
-        -0.5f, -0.5f, -0.5f, 0.f, 0.f, -1.f, 1.f, 0.f,
-        0.5f, -0.5f, -0.5f, 0.f, 0.f, -1.f, 0.f, 0.f,
-        0.5f, 0.5f, -0.5f, 0.f, 0.f, -1.f, 0.f, 1.f,
-        -0.5f, 0.5f, -0.5f, 0.f, 0.f, -1.f, 1.f, 1.f,
+        -0.5f, -0.5f, -0.5f, 0.f, 0.f, -1.f, 0.f, 0.f,
+        0.5f, -0.5f, -0.5f, 0.f, 0.f, -1.f, 1.f, 0.f,
+        0.5f, 0.5f, -0.5f, 0.f, 0.f, -1.f, 1.f, 1.f,
+        -0.5f, 0.5f, -0.5f, 0.f, 0.f, -1.f, 0.f, 1.f,
         // Front face
         -0.5f, -0.5f, 0.5f, 0.f, 0.f, 1.f, 0.f, 0.f,
         0.5f, -0.5f, 0.5f, 0.f, 0.f, 1.f, 1.f, 0.f,
         0.5f, 0.5f, 0.5f, 0.f, 0.f, 1.f, 1.f, 1.f,
         -0.5f, 0.5f, 0.5f, 0.f, 0.f, 1.f, 0.f, 1.f,
         // Bottom face
-        -0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 0.f, 0.f,
-        0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 1.f, 0.f,
-        0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 1.f, 1.f,
-        -0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 0.f, 1.f,
+        -0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 0.f, 1.f,
+        0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 1.f, 1.f,
+        0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 1.f, 0.f,
+        -0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 0.f, 0.f,
         // Top face
         -0.5f, 0.5f, -0.5f, 0.f, 1.f, 0.f, 0.f, 1.f,
         0.5f, 0.5f, -0.5f, 0.f, 1.f, 0.f, 1.f, 1.f,
         0.5f, 0.5f, 0.5f, 0.f, 1.f, 0.f, 1.f, 0.f,
         -0.5f, 0.5f, 0.5f, 0.f, 1.f, 0.f, 0.f, 0.f,
         // Left face
-        -0.5f, -0.5f, -0.5f, -1.f, 0.f, 0.f, 0.f, 0.f,
-        -0.5f, -0.5f, 0.5f, -1.f, 0.f, 0.f, 1.f, 0.f,
-        -0.5f, 0.5f, 0.5f, -1.f, 0.f, 0.f, 1.f, 1.f,
-        -0.5f, 0.5f, -0.5f, -1.f, 0.f, 0.f, 0.f, 1.f,
+        -0.5f, -0.5f, -0.5f, -1.f, 0.f, 0.f, 0.f, 1.f,
+        -0.5f, -0.5f, 0.5f, -1.f, 0.f, 0.f, 0.f, 0.f,
+        -0.5f, 0.5f, 0.5f, -1.f, 0.f, 0.f, 1.f, 0.f,
+        -0.5f, 0.5f, -0.5f, -1.f, 0.f, 0.f, 1.f, 1.f,
         // Right face
         0.5f, -0.5f, 0.5f, 1.f, 0.f, 0.f, 0.f, 0.f,
-        0.5f, -0.5f, -0.5f, 1.f, 0.f, 0.f, 1.f, 0.f,
+        0.5f, -0.5f, -0.5f, 1.f, 0.f, 0.f, 0.f, 1.f,
         0.5f, 0.5f, -0.5f, 1.f, 0.f, 0.f, 1.f, 1.f,
-        0.5f, 0.5f, 0.5f, 1.f, 0.f, 0.f, 0.f, 1.f
+        0.5f, 0.5f, 0.5f, 1.f, 0.f, 0.f, 1.f, 0.f
     };
 
     unsigned int cube_indices[] = {
@@ -336,11 +336,11 @@ int main()
     glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
     for (unsigned int i = 0 ; i < 6 ; i++){
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     }
     
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -370,13 +370,22 @@ int main()
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
-        glCullFace(GL_FRONT);
         
         glBindVertexArray(cubeVAO);
         for (unsigned int i = 0 ; i < nrCube ; i++){
-            glm::mat4 cube_model = cubeTransformations[i];
-            glUniformMatrix4fv(depthMap_modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            if (i == 0){
+                glDisable(GL_CULL_FACE);
+                glm::mat4 cube_model = cubeTransformations[i];
+                glUniformMatrix4fv(depthMap_modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+                depthMapShader.SetInt("reverse_normal", 1);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+                glEnable(GL_CULL_FACE);
+                depthMapShader.SetInt("reverse_normal", 0);
+            }else{
+                glm::mat4 cube_model = cubeTransformations[i];
+                glUniformMatrix4fv(depthMap_modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            }
         }
 
         // -----------------------------------
@@ -410,11 +419,13 @@ int main()
         glBindVertexArray(cubeVAO);
         for (unsigned int i = 0 ; i < nrCube ; i++){
             if (i == 0){
-                glCullFace(GL_FRONT);
+                glDisable(GL_CULL_FACE);
                 glm::mat4 cube_model = cubeTransformations[i];
                 glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+                objectShader.SetInt("reverse_normal", 1);
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-                glCullFace(GL_BACK);
+                glEnable(GL_CULL_FACE);
+                objectShader.SetInt("reverse_normal", 0);
             }else{
                 glm::mat4 cube_model = cubeTransformations[i];
                 glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
