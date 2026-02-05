@@ -175,38 +175,43 @@ int main()
         20, 22, 23
     };
 
-    float floor_vertices[] = {
-        -25.f, -0.5f, -25.f, 0.f, 1.f, 0.f, 0.f, 25.f,
-        25.f, -0.5f, -25.f, 0.f, 1.f, 0.f, 25.f, 25.f,
-        -25.f, -0.5f, 25.f, 0.f, 1.f, 0.f, 0.f, 0.f,
-        25.f, -0.5f, 25.f, 0.f, 1.f, 0.f, 25.f, 0.f,
-    };
-
-    unsigned int floor_indices[] = {
-        0, 3, 1,
-        0, 2, 3
-    };
-
-    const unsigned int nrCube = 3;
+    const unsigned int nrCube = 6;
     glm::mat4 cubeTransformations[nrCube];
     // Cube 1
     glm::mat4 transfo = glm::mat4(1.f);
-    transfo = glm::translate(transfo, glm::vec3(0.0f, 1.5f, 0.0));
-    transfo = glm::scale(transfo, glm::vec3(0.5f));
+    transfo = glm::scale(transfo, glm::vec3(10.f));
     cubeTransformations[0] = transfo;
-    
+
     // Cube 2
     transfo = glm::mat4(1.0f);
-    transfo = glm::translate(transfo, glm::vec3(2.0f, 0.0f, 1.0));
+    transfo = glm::translate(transfo, glm::vec3(4.0f, -3.5f, 0.0));
     transfo = glm::scale(transfo, glm::vec3(0.5f));
     cubeTransformations[1] = transfo;
-
+    
     // Cube 3
     transfo = glm::mat4(1.0f);
-    transfo = glm::translate(transfo, glm::vec3(-1.0f, 0.0f, 2.0));
-    transfo = glm::rotate(transfo, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-    transfo = glm::scale(transfo, glm::vec3(0.25));
+    transfo = glm::translate(transfo, glm::vec3(2.0f, 3.0f, 1.0));
+    transfo = glm::scale(transfo, glm::vec3(0.75f));
     cubeTransformations[2] = transfo;
+
+    // Cube 4
+    transfo = glm::mat4(1.0f);
+    transfo = glm::translate(transfo, glm::vec3(-3.0f, -1.0f, 0.0));
+    transfo = glm::scale(transfo, glm::vec3(0.5f));
+    cubeTransformations[3] = transfo;
+    
+    // Cube 5
+    transfo = glm::mat4(1.0f);
+    transfo = glm::translate(transfo, glm::vec3(-1.5f, 1.0f, 1.5));
+    transfo = glm::scale(transfo, glm::vec3(0.5f));
+    cubeTransformations[4] = transfo;
+
+    // Cube 6
+    transfo = glm::mat4(1.0f);
+    transfo = glm::translate(transfo, glm::vec3(-1.5f, 2.0f, -3.0));
+    transfo = glm::rotate(transfo, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+    transfo = glm::scale(transfo, glm::vec3(0.75f));
+    cubeTransformations[5] = transfo;
     
     // -----------------------------------
     // LOAD TEXTURES
@@ -235,26 +240,6 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_STATIC_DRAW);
 
-    // FLOOR 
-    unsigned int floorVBO, floorVAO, floorEBO;
-    glGenVertexArrays(1, &floorVAO);
-    glGenBuffers(1, &floorVBO);
-    glGenBuffers(1, &floorEBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(floor_vertices), floor_vertices, GL_STATIC_DRAW);
-    
-    glBindVertexArray(floorVAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floorEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
-
     // -----------------------------------
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -264,17 +249,39 @@ int main()
     // -----------------------------------
     // LIGHT
 
-    glm::vec3 lightPosition = glm::vec3(-2.f, 4.f, -1.f); // Directionnal light doesn't need a position, but we need it for the view matrix
-    glm::vec3 lightLookAt = glm::vec3(0.f);
-    glm::vec3 lightUpVector = glm::vec3(0.f, 1.f, 0.f);
-
-    // Because a directionnal light is used, projection matrix must be orthographic
-    float near_plane = 1.f, far_plane = 7.5f;
-    glm::mat4 depthMap_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f, near_plane, far_plane);
-
-    glm::mat4 depthMap_view = glm::lookAt(lightPosition, lightLookAt, lightUpVector); 
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    glm::vec3 lightPosition = glm::vec3(0.f);
     
-    glm::mat4 lightSpaceMatrix = depthMap_projection * depthMap_view;
+    float near_plane = 1.f, far_plane = 25.f, aspect = (float)SHADOW_WIDTH/(float)SHADOW_HEIGHT;
+    glm::mat4 depthCubemap_projection = glm::perspective(glm::radians(90.f), aspect, near_plane, far_plane);
+    // We can use the same projection matrix for each faces of the cube
+    
+    // For the view, we need one matrix for each face 
+    std::vector<glm::mat4> depthCubemap_transformations;
+    depthCubemap_transformations.push_back( // Right face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)));
+
+    depthCubemap_transformations.push_back( // Left face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)));
+
+    depthCubemap_transformations.push_back( // Front face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)));
+
+    depthCubemap_transformations.push_back( // Back face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)));
+    
+    // Top & bottom face have not the same up vector than other faces
+    depthCubemap_transformations.push_back( // Top face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)));
+
+    depthCubemap_transformations.push_back( // Bottom face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)));
     
     // -----------------------------------
     // SHADERS
@@ -290,7 +297,7 @@ int main()
     objectShader.SetInt("material.diffuse", 0);
     objectShader.SetInt("shadowMap", 1);
     objectShader.SetVec3("material.specular", glm::vec3(0.5f));
-    objectShader.SetFloat("material.shininess", 32.f);
+    objectShader.SetFloat("material.shininess", 8.f);
 
     objectShader.SetFloat("light.constant", 0.5f);
     objectShader.SetFloat("light.linear", 0.02f);
@@ -301,37 +308,43 @@ int main()
     objectShader.SetVec3("light.ambient", glm::vec3(0.3f));
     objectShader.SetVec3("light.diffuse", glm::vec3(0.9f));
     objectShader.SetVec3("light.specular", glm::vec3(1.f));
-
-    glUniformMatrix4fv(lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
     
-    Shader depthMapShader("../shaders/depth_map.vs", "../shaders/depth_map.fs");
+    objectShader.SetFloat("far_plane", far_plane);
+
+    glUniformMatrix4fv(lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(depthCubemap_transformations[0]));
+    
+    Shader depthMapShader("../shaders/depth_map.vs", "../shaders/depth_map.gs", "../shaders/depth_map.fs");
     depthMapShader.Use();
     
-    int depthMap_lightSpaceMatrixLocation = glGetUniformLocation(depthMapShader.m_id, "lightSpaceMatrix");
     int depthMap_modelLocation = glGetUniformLocation(depthMapShader.m_id, "model");
+    
+    depthMapShader.SetVec3("lightPos", lightPosition);
+    depthMapShader.SetFloat("far_plane", far_plane);
 
-    glUniformMatrix4fv(depthMap_lightSpaceMatrixLocation, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+    for (unsigned int i = 0; i < 6; ++i){
+        depthMapShader.SetMat4("lightSpaceMatrices[" + std::to_string(i) + "]", depthCubemap_transformations[i]);
+    }
     
     // -----------------------------------
     // DEPTH MAP
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
 
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-    unsigned int depthMap;
-    glGenTextures(1, &depthMap);
+    unsigned int depthCubemap;
+    glGenTextures(1, &depthCubemap);
 
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 }; // Could also use GL_CLAMP_TO_EDGE instead of setting Gl_TEXTURE_BORDER_COLOR
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+    for (unsigned int i = 0 ; i < 6 ; i++){
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    }
     
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
     glDrawBuffer(GL_NONE); // Will not render any color data
     glReadBuffer(GL_NONE); // Will not render any color data
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -350,28 +363,14 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // -----------------------------------
-        // RENDER THE DEPTH MAP (RENDER THE SCENE FROM THE LIGHT POV)
+        // RENDER THE DEPTH CUBEMAP
 
         depthMapShader.Use();
         
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
-        glActiveTexture(GL_TEXTURE0); // ???
-        glBindTexture(GL_TEXTURE_2D, woodTexture); // ???
         glCullFace(GL_FRONT);
-        
-        // NOW THE SCENE
-        // -----------------------------------
-        // FLOOR
-        
-        glBindVertexArray(floorVAO);
-        glm::mat4 floor_model = glm::mat4(1.f);
-        glUniformMatrix4fv(depthMap_modelLocation, 1, GL_FALSE, glm::value_ptr(floor_model));
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        
-        // -----------------------------------
-        // CUBES
         
         glBindVertexArray(cubeVAO);
         for (unsigned int i = 0 ; i < nrCube ; i++){
@@ -396,7 +395,7 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
         glCullFace(GL_BACK);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f);
@@ -404,23 +403,23 @@ int main()
 
         glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
         glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
-
-        // -----------------------------------
-        // FLOOR
-        
-        glBindVertexArray(floorVAO);
-        floor_model = glm::mat4(1.f);
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(floor_model));
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         
         // -----------------------------------
         // CUBES
         
         glBindVertexArray(cubeVAO);
         for (unsigned int i = 0 ; i < nrCube ; i++){
-            glm::mat4 cube_model = cubeTransformations[i];
-            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            if (i == 0){
+                glCullFace(GL_FRONT);
+                glm::mat4 cube_model = cubeTransformations[i];
+                glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+                glCullFace(GL_BACK);
+            }else{
+                glm::mat4 cube_model = cubeTransformations[i];
+                glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            }
         }
 
         // -----------------------------------
@@ -431,8 +430,6 @@ int main()
 
     glDeleteVertexArrays(1, &cubeVAO);
     glDeleteBuffers(1, &cubeVBO);
-    glDeleteVertexArrays(1, &floorVAO);
-    glDeleteBuffers(1, &floorVBO);
     
     glfwDestroyWindow(window);
     glfwTerminate();
