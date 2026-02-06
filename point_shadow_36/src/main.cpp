@@ -138,16 +138,6 @@ int main()
         0.5f, -0.5f, 0.5f, 0.f, 0.f, 1.f, 1.f, 0.f,
         0.5f, 0.5f, 0.5f, 0.f, 0.f, 1.f, 1.f, 1.f,
         -0.5f, 0.5f, 0.5f, 0.f, 0.f, 1.f, 0.f, 1.f,
-        // Bottom face
-        -0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 0.f, 1.f,
-        0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 1.f, 1.f,
-        0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 1.f, 0.f,
-        -0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 0.f, 0.f,
-        // Top face
-        -0.5f, 0.5f, -0.5f, 0.f, 1.f, 0.f, 0.f, 1.f,
-        0.5f, 0.5f, -0.5f, 0.f, 1.f, 0.f, 1.f, 1.f,
-        0.5f, 0.5f, 0.5f, 0.f, 1.f, 0.f, 1.f, 0.f,
-        -0.5f, 0.5f, 0.5f, 0.f, 1.f, 0.f, 0.f, 0.f,
         // Left face
         -0.5f, -0.5f, -0.5f, -1.f, 0.f, 0.f, 0.f, 1.f,
         -0.5f, -0.5f, 0.5f, -1.f, 0.f, 0.f, 0.f, 0.f,
@@ -157,22 +147,32 @@ int main()
         0.5f, -0.5f, 0.5f, 1.f, 0.f, 0.f, 0.f, 0.f,
         0.5f, -0.5f, -0.5f, 1.f, 0.f, 0.f, 0.f, 1.f,
         0.5f, 0.5f, -0.5f, 1.f, 0.f, 0.f, 1.f, 1.f,
-        0.5f, 0.5f, 0.5f, 1.f, 0.f, 0.f, 1.f, 0.f
+        0.5f, 0.5f, 0.5f, 1.f, 0.f, 0.f, 1.f, 0.f,
+        // Bottom face
+        -0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 0.f, 1.f,
+        0.5f, -0.5f, -0.5f, 0.f, -1.f, 0.f, 1.f, 1.f,
+        0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 1.f, 0.f,
+        -0.5f, -0.5f, 0.5f, 0.f, -1.f, 0.f, 0.f, 0.f,
+        // Top face
+        -0.5f, 0.5f, -0.5f, 0.f, 1.f, 0.f, 0.f, 1.f,
+        0.5f, 0.5f, -0.5f, 0.f, 1.f, 0.f, 1.f, 1.f,
+        0.5f, 0.5f, 0.5f, 0.f, 1.f, 0.f, 1.f, 0.f,
+        -0.5f, 0.5f, 0.5f, 0.f, 1.f, 0.f, 0.f, 0.f
     };
 
     unsigned int cube_indices[] = {
-        1, 0, 2,
+        0, 2, 1,
         0, 3, 2,
         4, 5, 6,
         4, 6, 7,
         8, 9, 10,
         8, 10, 11,
-        12, 14, 13,
-        12, 15, 14,
+        12, 13, 14,
+        12, 14, 15,
         16, 17, 18,
         16, 18, 19,
-        20, 21, 22,
-        20, 22, 23
+        20, 22, 21,
+        20, 23, 22
     };
 
     const unsigned int nrCube = 6;
@@ -249,7 +249,7 @@ int main()
     // -----------------------------------
     // LIGHT
 
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    const unsigned int SHADOW_WIDTH = 512, SHADOW_HEIGHT = 512;
     glm::vec3 lightPosition = glm::vec3(0.f);
     
     float near_plane = 1.f, far_plane = 25.f, aspect = (float)SHADOW_WIDTH/(float)SHADOW_HEIGHT;
@@ -257,6 +257,7 @@ int main()
     // We can use the same projection matrix for each faces of the cube
     
     // For the view, we need one matrix for each face 
+    // WARNING : BE SURE TO PUSH WITH THE CORRECT ORDER --> +X, -X, +Y, -Y, +Z, -Z
     std::vector<glm::mat4> depthCubemap_transformations;
     depthCubemap_transformations.push_back( // Right face
         depthCubemap_projection * 
@@ -266,14 +267,6 @@ int main()
         depthCubemap_projection * 
         glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f)));
 
-    depthCubemap_transformations.push_back( // Front face
-        depthCubemap_projection * 
-        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)));
-
-    depthCubemap_transformations.push_back( // Back face
-        depthCubemap_projection * 
-        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)));
-    
     // Top & bottom face have not the same up vector than other faces
     depthCubemap_transformations.push_back( // Top face
         depthCubemap_projection * 
@@ -282,6 +275,14 @@ int main()
     depthCubemap_transformations.push_back( // Bottom face
         depthCubemap_projection * 
         glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, -1.f, 0.f), glm::vec3(0.f, 0.f, -1.f)));
+
+    depthCubemap_transformations.push_back( // Front face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, -1.f, 0.f)));
+
+    depthCubemap_transformations.push_back( // Back face
+        depthCubemap_projection * 
+        glm::lookAt(lightPosition, lightPosition + glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, -1.f, 0.f)));
     
     // -----------------------------------
     // SHADERS
@@ -336,12 +337,12 @@ int main()
     glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
     for (unsigned int i = 0 ; i < 6 ; i++){
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
@@ -419,12 +420,12 @@ int main()
         glBindVertexArray(cubeVAO);
         for (unsigned int i = 0 ; i < nrCube ; i++){
             if (i == 0){
-                glDisable(GL_CULL_FACE);
+                glCullFace(GL_FRONT);
                 glm::mat4 cube_model = cubeTransformations[i];
                 glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
                 objectShader.SetInt("reverse_normal", 1);
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-                glEnable(GL_CULL_FACE);
+                glCullFace(GL_BACK);
                 objectShader.SetInt("reverse_normal", 0);
             }else{
                 glm::mat4 cube_model = cubeTransformations[i];

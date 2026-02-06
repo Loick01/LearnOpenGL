@@ -61,16 +61,25 @@ vec3 CalcLight(Light light, vec3 normal, vec3 viewDir, float shadowValue)
 
 float GetShadowValue(vec3 fragPos){
     vec3 fragToLight = fragPos - lightPos; // Don't need to be normalized
-    float closestDepth = texture(shadowMap, fragToLight).r; // [0, 1]
-    closestDepth *= far_plane; // [0, far_plane]
     float currentDepth = length(fragToLight);
-
-    // if (currentDepth > 1.0)
-    //     return 0.0;
 
     float bias = 0.05;
 
-    float isShadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    // PCF
+    float isShadow = 0.0;
+    float samples = 4.0;
+    float offset = 0.1;
+    for (float x = -offset ; x <= offset ; x+=offset/(samples*0.5)){
+        for (float y = -offset ; y <= offset ; y+=offset/(samples*0.5)){
+            for (float z = -offset ; z <= offset ; z+=offset/(samples*0.5)){
+                float closestDepth = texture(shadowMap, fragToLight + vec3(x,y,z)).r; // [0, 1]
+                closestDepth *= far_plane; // [0, far_plane]
+                if (currentDepth - bias > closestDepth)
+                    isShadow += 1.0;
+            }
+        }
+    }
+    isShadow /= (samples*samples*samples);
     
     return isShadow;
 }
@@ -82,4 +91,9 @@ void main()
     float shadowValue = GetShadowValue(fs_in.FragPos);
     vec3 result = CalcLight(light, norm, viewDir, shadowValue);
     FragColor = vec4(result, 1.0);
+
+    // DEBUG SHADOW CUBEMAP 
+    // vec3 fragToLight = fs_in.FragPos - lightPos; // Don't need to be normalized
+    // float closestDepth = texture(shadowMap, fragToLight).r; // [0, 1]
+    // FragColor = vec4(vec3(closestDepth), 1.0);
 }
