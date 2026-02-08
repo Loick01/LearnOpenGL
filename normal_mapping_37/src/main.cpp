@@ -126,18 +126,69 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
+    // -----------------------------------
+    // TBN
+    glm::vec3 pos1(-1.0, 1.0, 0.0);
+    glm::vec3 pos2(-1.0, -1.0, 0.0);
+    glm::vec3 pos3( 1.0, -1.0, 0.0);
+    glm::vec3 pos4( 1.0, 1.0, 0.0);
+    // texture coordinates
+    glm::vec2 uv1(0.0, 1.0);
+    glm::vec2 uv2(0.0, 0.0);
+    glm::vec2 uv3(1.0, 0.0);
+    glm::vec2 uv4(1.0, 1.0);
+    // normal vector
+    glm::vec3 nm(0.0, 0.0, 1.0);
+
+    // First triangle
+    glm::vec3 edge1 = pos2-pos1;
+    glm::vec3 edge2 = pos3-pos1;
+    glm::vec2 deltaUV1 = uv2 - uv1;
+    glm::vec2 deltaUV2 = uv3 - uv1;
+
+    float f1 = 1./(deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+    glm::vec3 tangent1, bitangent1;
+    tangent1.x = f1 * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+    tangent1.y = f1 * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+    tangent1.z = f1 * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+    // bitangent1.x = f1 * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+    // bitangent1.y = f1 * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+    // bitangent1.z = f1 * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+    // Second triangle
+    glm::vec3 edge3 = pos3-pos1;
+    glm::vec3 edge4 = pos4-pos1;
+    glm::vec2 deltaUV3 = uv3 - uv1;
+    glm::vec2 deltaUV4 = uv4 - uv1;
+
+    float f2 = 1./(deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+    glm::vec3 tangent2, bitangent2;
+    tangent2.x = f2 * (deltaUV4.y * edge3.x - deltaUV3.y * edge4.x);
+    tangent2.y = f2 * (deltaUV4.y * edge3.y - deltaUV3.y * edge4.y);
+    tangent2.z = f2 * (deltaUV4.y * edge3.z - deltaUV3.y * edge4.z);
+    // bitangent2.x = f2 * (-deltaUV4.x * edge3.x + deltaUV3.x * edge4.x);
+    // bitangent2.y = f2 * (-deltaUV4.x * edge3.y + deltaUV3.x * edge4.y);
+    // bitangent2.z = f2 * (-deltaUV4.x * edge3.z + deltaUV3.x * edge4.z);
+
+    // std::cout << "tangent1 = " << tangent1.x << ", " << tangent1.y << ", " << tangent1.z << "\n";
+    // std::cout << "tangent2 = " << tangent2.x << ", " << tangent2.y << ", " << tangent2.z << "\n";
+    // std::cout << "bitangent1 = " << bitangent1.x << ", " << bitangent1.y << ", " << bitangent1.z << "\n";
+    // std::cout << "bitangent2 = " << bitangent2.x << ", " << bitangent2.y << ", " << bitangent2.z << "\n";
+    
+    // Toward +z 
+    // Because the 2 triangles are aligned, they have the same tangent
     float wall_vertices[] = {
-        -5.f, -5.f, -0.5f, 0.f, 0.f, 1.f, 0.f, 0.f,
-        -5.f, 5.f, -0.5f, 0.f, 0.f, 1.f, 0.f, 1.f,
-        5.f, -5.f, -0.5f, 0.f, 0.f, 1.f, 1.f, 0.f,
-        5.f, 5.f, -0.5f, 0.f, 0.f, 1.f, 1.f, 1.f
+        -5.f, 5.f, 0.f, 0.f, 0.f, 1.f, 0.f, 1.f, tangent1.x, tangent1.y, tangent1.z,
+        -5.f, -5.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, tangent1.x, tangent1.y, tangent1.z,
+        5.f, -5.f, 0.f, 0.f, 0.f, 1.f, 1.f, 0.f, tangent1.x, tangent1.y, tangent1.z,
+        5.f, 5.f, 0.f, 0.f, 0.f, 1.f, 1.f, 1.f, tangent1.x, tangent1.y, tangent1.z
     };
 
     unsigned int wall_indices[] = {
-        0, 3, 1,
+        0, 1, 2,
         0, 2, 3
     };
-
+    
     // -----------------------------------
     // LOAD THE CUBE OBJECT TEXTURES
 
@@ -156,12 +207,14 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(wall_vertices), wall_vertices, GL_STATIC_DRAW);
     
     glBindVertexArray(wallVAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3*sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11*sizeof(float), (void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11*sizeof(float), (void*)(6*sizeof(float)));
     glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11*sizeof(float), (void*)(8*sizeof(float)));
+    glEnableVertexAttribArray(3);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wallEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(wall_indices), wall_indices, GL_STATIC_DRAW);
@@ -187,7 +240,7 @@ int main()
 
     // -----------------------------------
     // LIGHT
-    glm::vec3 lightPosition = glm::vec3(0.5f, 1.0f, 0.3f);
+    glm::vec3 lightPosition = glm::vec3(0.5f, 1.0f, 1.0f);
     objectShader.SetFloat("light.constant", 1.0f);
     objectShader.SetFloat("light.linear", 0.07f);
     objectShader.SetFloat("light.quadratic", 0.017f);
@@ -230,6 +283,7 @@ int main()
 
         glBindVertexArray(wallVAO);
         glm::mat4 wall_model = glm::mat4(1.f);
+        wall_model = glm::rotate(wall_model, (float)glfwGetTime(), glm::normalize(glm::vec3(1.f, 0.f, 1.f)));
         glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(wall_model));
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
