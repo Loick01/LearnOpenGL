@@ -173,7 +173,7 @@ int main()
 
     unsigned int wallTexture = loadTexture("../../assets/bricks2.jpg");
     unsigned int normalTexture = loadTexture("../../assets/bricks2_normal.jpg");
-    unsigned int displacementTexture = loadTexture("../../assets/bricks2_disp.jpg");
+    unsigned int heightMap = loadTexture("../../assets/bricks2_disp.jpg");
 
     // -----------------------------------
     unsigned int wallVAO, wallVBO, wallEBO;
@@ -216,14 +216,16 @@ int main()
 
     objectShader.SetInt("material.diffuse", 0);
     objectShader.SetInt("material.normalMap", 1);
-    objectShader.SetInt("material.displacementMap", 2);
+    objectShader.SetInt("material.heightMap", 2);
     objectShader.SetVec3("material.specular", glm::vec3(0.2f));
     objectShader.SetFloat("material.shininess", 32.f);
+    // objectShader.SetFloat("heightScale", 0.1f);
+    objectShader.SetFloat("heightScale", 0.05f);
 
     // -----------------------------------
     // LIGHT
     glm::vec3 lightPosition = glm::vec3(0.5f, 1.0f, 0.5f);
-    objectShader.SetVec3("light.position", lightPosition);
+    objectShader.SetVec3("lightPos", lightPosition);
     objectShader.SetVec3("light.ambient", glm::vec3(0.5f));
     objectShader.SetVec3("light.diffuse", glm::vec3(1.f));
     objectShader.SetVec3("light.specular", glm::vec3(1.f));
@@ -242,6 +244,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         objectShader.Use();
+        objectShader.SetVec3("viewPos", camera.Position);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.f/600.f, 0.1f, 100.f);
         glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
@@ -256,7 +259,7 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, normalTexture);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, displacementTexture);
+        glBindTexture(GL_TEXTURE_2D, heightMap);
 
         glBindVertexArray(wallVAO);
         glm::mat4 wall_model = glm::mat4(1.f);
