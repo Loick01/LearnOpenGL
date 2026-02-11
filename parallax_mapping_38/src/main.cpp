@@ -171,6 +171,10 @@ int main()
     // -----------------------------------
     // LOAD THE CUBE OBJECT TEXTURES
 
+    // unsigned int wallTexture = loadTexture("../../assets/toy_box_diffuse.png");
+    // unsigned int normalTexture = loadTexture("../../assets/toy_box_normal.png");
+    // unsigned int heightMap = loadTexture("../../assets/toy_box_disp.png");
+
     unsigned int wallTexture = loadTexture("../../assets/bricks2.jpg");
     unsigned int normalTexture = loadTexture("../../assets/bricks2_normal.jpg");
     unsigned int heightMap = loadTexture("../../assets/bricks2_disp.jpg");
@@ -219,8 +223,8 @@ int main()
     objectShader.SetInt("material.heightMap", 2);
     objectShader.SetVec3("material.specular", glm::vec3(0.2f));
     objectShader.SetFloat("material.shininess", 32.f);
-    // objectShader.SetFloat("heightScale", 0.1f);
-    objectShader.SetFloat("heightScale", 0.05f);
+    objectShader.SetFloat("heightScale", 0.1f);
+    //objectShader.SetFloat("heightScale", 0.05f);
 
     // -----------------------------------
     // LIGHT

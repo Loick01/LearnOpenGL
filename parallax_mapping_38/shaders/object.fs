@@ -32,11 +32,36 @@ uniform PointLight light;
 uniform vec3 viewPos;
 uniform float heightScale;
 
-
 vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir){
     float height = texture(material.heightMap, texCoords).r;
     vec2 p = viewDir.xy / viewDir.z * (height*heightScale);
     return texCoords - p;
+}
+
+vec2 SteepParallaxMapping(vec2 texCoords, vec3 viewDir){
+    // const float numLayers = 10.0;
+    const float minLayers = 8.0;
+    const float maxLayers = 32.0;
+    float numLayers = mix(maxLayers, minLayers, max(dot(vec3(0.0, 0.0, 1.0), viewDir), 0.0));
+
+    float layerDepth = 1.0/numLayers;
+    float currentLayerDepth = 0.0;
+    vec2 p = viewDir.xy * heightScale;
+    vec2 deltaTexCoords = p / numLayers;
+    
+    vec2 currentTexCoords = texCoords;
+    float currentHeightMapValue = texture(material.heightMap, currentTexCoords).r;
+    while(currentLayerDepth < currentHeightMapValue){
+        currentTexCoords -= deltaTexCoords;
+        currentHeightMapValue = texture(material.heightMap, currentTexCoords).r;
+        currentLayerDepth += layerDepth;
+    }
+    vec2 previousTexCoords = currentTexCoords + deltaTexCoords;
+    float afterDpeth = currentHeightMapValue - currentLayerDepth;
+    float beforeDepth = texture(material.heightMap, previousTexCoords).r - currentLayerDepth + layerDepth;
+    float weight = afterDpeth / (afterDpeth-beforeDepth);
+    vec2 resultTexCoords = previousTexCoords * weight + currentTexCoords * (1.0 - weight);
+    return resultTexCoords;
 }
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
@@ -64,8 +89,8 @@ void main()
     vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
     
     // vec2 texCoords = fs_in.TexCoords; // Without parallax mapping
-    
-    vec2 texCoords = ParallaxMapping(fs_in.TexCoords, viewDir);
+    // vec2 texCoords = ParallaxMapping(fs_in.TexCoords, viewDir);
+    vec2 texCoords = SteepParallaxMapping(fs_in.TexCoords, viewDir);
     if (texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0){
         discard;
     }
