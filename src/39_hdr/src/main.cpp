@@ -1,7 +1,6 @@
 #include <glad/glad.h> // Must be include before GLFW
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -125,41 +124,39 @@ int main()
     glfwSetScrollCallback(window, scroll_callback);
 
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE); // Disabled by default
-    glCullFace(GL_FRONT); // GL_FRONT, GL_BACK (default), GL_FRONT_AND_BACK
-    glFrontFace(GL_CW); // GL_CCW (default), GL_CW
+    glEnable(GL_CULL_FACE);
 
     float cube_vertices[] = {
         // Back face
-        -0.5f, -0.5f, -0.5f, 1.f, 0.f,
-        0.5f, -0.5f, -0.5f, 0.f, 0.f,
-        0.5f, 0.5f, -0.5f, 0.f, 1.f,
-        -0.5f, 0.5f, -0.5f, 1.f, 1.f,
+        -1.f, -1.f, -1.f, 0.f, 0.f, -1.f, 1.f, 0.f,
+        1.f, -1.f, -1.f, 0.f, 0.f, -1.f, 0.f, 0.f,
+        1.f, 1.f, -1.f, 0.f, 0.f, -1.f, 0.f, 1.f,
+        -1.f, 1.f, -1.f, 0.f, 0.f, -1.f, 1.f, 1.f,
         // Front face
-        -0.5f, -0.5f, 0.5f, 0.f, 0.f,
-        0.5f, -0.5f, 0.5f, 1.f, 0.f,
-        0.5f, 0.5f, 0.5f, 1.f, 1.f,
-        -0.5f, 0.5f, 0.5f, 0.f, 1.f,
+        -1.f, -1.f, 1.f, 0.f, 0.f, 1.f, 0.f, 0.f,
+        1.f, -1.f, 1.f, 0.f, 0.f, 1.f, 1.f, 0.f,
+        1.f, 1.f, 1.f, 0.f, 0.f, 1.f, 1.f, 1.f,
+        -1.f, 1.f, 1.f, 0.f, 0.f, 1.f, 0.f, 1.f,
         // Bottom face
-        -0.5f, -0.5f, -0.5f, 0.f, 0.f,
-        0.5f, -0.5f, -0.5f, 1.f, 0.f,
-        0.5f, -0.5f, 0.5f, 1.f, 1.f,
-        -0.5f, -0.5f, 0.5f, 0.f, 1.f,
+        -1.f, -1.f, -1.f, 0.f, -1.f, 0.f, 0.f, 0.f,
+        1.f, -1.f, -1.f, 0.f, -1.f, 0.f, 1.f, 0.f,
+        1.f, -1.f, 1.f, 0.f, -1.f, 0.f, 1.f, 1.f,
+        -1.f, -1.f, 1.f, 0.f, -1.f, 0.f, 0.f, 1.f,
         // Top face
-        -0.5f, 0.5f, -0.5f, 0.f, 1.f,
-        0.5f, 0.5f, -0.5f, 1.f, 1.f,
-        0.5f, 0.5f, 0.5f, 1.f, 0.f,
-        -0.5f, 0.5f, 0.5f, 0.f, 0.f,
+        -1.f, 1.f, -1.f, 0.f, 1.f, 0.f, 0.f, 1.f,
+        1.f, 1.f, -1.f, 0.f, 1.f, 0.f, 1.f, 1.f,
+        1.f, 1.f, 1.f, 0.f, 1.f, 0.f, 1.f, 0.f,
+        -1.f, 1.f, 1.f, 0.f, 1.f, 0.f, 0.f, 0.f,
         // Left face
-        -0.5f, -0.5f, -0.5f, 0.f, 0.f,
-        -0.5f, -0.5f, 0.5f, 1.f, 0.f,
-        -0.5f, 0.5f, 0.5f, 1.f, 1.f,
-        -0.5f, 0.5f, -0.5f, 0.f, 1.f,
+        -1.f, -1.f, -1.f, -1.f, 0.f, 0.f, 0.f, 0.f,
+        -1.f, -1.f, 1.f, -1.f, 0.f, 0.f, 1.f, 0.f,
+        -1.f, 1.f, 1.f, -1.f, 0.f, 0.f, 1.f, 1.f,
+        -1.f, 1.f, -1.f, -1.f, 0.f, 0.f, 0.f, 1.f,
         // Right face
-        0.5f, -0.5f, 0.5f, 0.f, 0.f,
-        0.5f, -0.5f, -0.5f, 1.f, 0.f,
-        0.5f, 0.5f, -0.5f, 1.f, 1.f,
-        0.5f, 0.5f, 0.5f, 0.f, 1.f
+        1.f, -1.f, 1.f, 1.f, 0.f, 0.f, 0.f, 0.f,
+        1.f, -1.f, -1.f, 1.f, 0.f, 0.f, 1.f, 0.f,
+        1.f, 1.f, -1.f, 1.f, 0.f, 0.f, 1.f, 1.f,
+        1.f, 1.f, 1.f, 1.f, 0.f, 0.f, 0.f, 1.f
     };
 
     unsigned int cube_indices[] = {
@@ -177,26 +174,61 @@ int main()
         20, 22, 23
     };
 
-    float floor_vertices[] = {
-        -5.f, -0.5f, -5.f, 0.f, 2.f,
-        5.f, -0.5f, -5.f, 2.f, 2.f,
-        -5.f, -0.5f, 5.f, 0.f, 0.f,
-        5.f, -0.5f, 5.f, 2.f, 0.f,
+    float quad_vertices[] = {
+        -1.f, 1.f, 0.f, 0.f, 1.f,
+        -1.f, -1.f, 0.f, 0.f, 0.f,
+        1.f, 1.f, 0.f, 1.f, 1.f,
+        1.f, -1.f, 0.f, 1.f, 0.f,
     };
 
-    unsigned int floor_indices[] = {
-        0, 3, 1,
-        0, 2, 3
+    unsigned int quad_indices[] = {
+        0, 1, 2,
+        2, 1, 3
     };
 
     // -----------------------------------
     // LOAD THE CUBE OBJECT TEXTURES
 
-    unsigned int cubeTexture = loadTexture("../../../assets/marble.jpg");
-    unsigned int floorTexture = loadTexture("../../../assets/metal.png");
+    unsigned int woodTexture = loadTexture("../../../assets/wood.png");
 
     // -----------------------------------
-    unsigned int cubeVBO, cubeVAO, cubeEBO, floorVAO, floorVBO, floorEBO;
+    unsigned int hdrFBO;
+    glGenFramebuffers(1, &hdrFBO);
+    
+    unsigned int colorBuffer;
+    glGenTextures(1, &colorBuffer);
+    glBindTexture(GL_TEXTURE_2D, colorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 800, 600, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned int depthRBO;
+    glGenRenderbuffers(1, &depthRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 800, 600);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Framebuffer not complete!" << std::endl;
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // -----------------------------------
+    // LIGHTS (POSITIONS AND COLORS)
+    std::vector<glm::vec3> lightPositions;
+    lightPositions.push_back(glm::vec3( 0.0f,  0.0f, 49.5f));
+    lightPositions.push_back(glm::vec3(-1.4f, -1.9f, 9.0f));
+    lightPositions.push_back(glm::vec3( 0.0f, -1.8f, 4.0f));
+    lightPositions.push_back(glm::vec3( 0.8f, -1.7f, 6.0f));
+    std::vector<glm::vec3> lightColors;
+    lightColors.push_back(glm::vec3(200.0f, 200.0f, 200.0f));
+    lightColors.push_back(glm::vec3(0.1f, 0.0f, 0.0f));
+    lightColors.push_back(glm::vec3(0.0f, 0.0f, 0.2f));
+    lightColors.push_back(glm::vec3(0.0f, 0.1f, 0.0f));
+
+    unsigned int cubeVBO, cubeVAO, cubeEBO, quadVBO, quadVAO, quadEBO;
     // CUBE OBJECT
     glGenVertexArrays(1, &cubeVAO);
     glGenBuffers(1, &cubeVBO);
@@ -206,30 +238,33 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
     
     glBindVertexArray(cubeVAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_STATIC_DRAW);
 
-    // FLOOR OBJECT
-    glGenVertexArrays(1, &floorVAO);
-    glGenBuffers(1, &floorVBO);
-    glGenBuffers(1, &floorEBO);
+    // QUAD OBJECT
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glGenBuffers(1, &quadEBO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(floor_vertices), floor_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
     
-    glBindVertexArray(floorVAO);
+    glBindVertexArray(quadVAO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floorEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quad_indices), quad_indices, GL_STATIC_DRAW);
+    
     // -----------------------------------
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -240,12 +275,22 @@ int main()
     // OBJECT SHADER
 
     Shader objectShader("../shaders/object.vs", "../shaders/object.fs");
-    objectShader.Use();
+    Shader hdrShader("../shaders/hdr.vs", "../shaders/hdr.fs");
 
+    objectShader.Use();
     int modelLocation = glGetUniformLocation(objectShader.m_id, "model");
     int viewLocation = glGetUniformLocation(objectShader.m_id, "view");
     int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
-    objectShader.SetInt("objectTexture", 0);
+    objectShader.SetInt("material.diffuse", 0);
+
+    for (unsigned int i = 0; i < lightPositions.size(); i++)
+    {
+        objectShader.SetVec3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
+        objectShader.SetVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
+    }
+    
+    hdrShader.Use();
+    hdrShader.SetInt("hdrBuffer", 0);
 
     // -----------------------------------
 
@@ -259,9 +304,13 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         
+        // -----------------------------------
+        // RENDER THE SCENE ON THE FRAMEBUFFER
+        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         objectShader.Use();
+        objectShader.SetVec3("viewPos", camera.Position);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.f/600.f, 0.1f, 100.f);
         glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
@@ -269,29 +318,29 @@ int main()
         glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
         glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
 
-        // -----------------------------------
-        // CUBE OBJECT
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
+        glBindTexture(GL_TEXTURE_2D, woodTexture);
 
         glBindVertexArray(cubeVAO);
-        glm::mat4 cube_model = glm::mat4(1.f);
-        cube_model = glm::translate(cube_model, glm::vec3(-1.0f, 0.01f, -1.0f));
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
+        glCullFace(GL_FRONT);
+        glm::mat4 tunnel_model = glm::mat4(1.f);
+        tunnel_model = glm::translate(tunnel_model, glm::vec3(0.f ,0.f, 25.f));
+        tunnel_model = glm::scale(tunnel_model, glm::vec3(2.5f, 2.5f, 27.5f));
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(tunnel_model));
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        cube_model = glm::mat4(1.f);
-        cube_model = glm::translate(cube_model, glm::vec3(2.0f, 0.01f, 0.0f));
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(cube_model));
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glCullFace(GL_BACK);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // -----------------------------------
-        // FLOOR OBJECT
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-
-        glBindVertexArray(floorVAO);
-        glm::mat4 floor_model = glm::mat4(1.f);
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(floor_model));
+        // RENDER HDR COLOR BUFFER ON A 2D QUAD (USING TONE-MAPPING)
+        
+        hdrShader.Use();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        //hdrShader.SetInt("hdr", hdr);
+        //hdrShader.SetFloat("exposure", exposure);
+        glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         // -----------------------------------
@@ -302,8 +351,8 @@ int main()
 
     glDeleteVertexArrays(1, &cubeVAO);
     glDeleteBuffers(1, &cubeVBO);
-    glDeleteVertexArrays(1, &floorVAO);
-    glDeleteBuffers(1, &floorVBO);
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
     
     glfwDestroyWindow(window);
     glfwTerminate();
