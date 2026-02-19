@@ -291,6 +291,7 @@ int main()
     
     hdrShader.Use();
     hdrShader.SetInt("hdrBuffer", 0);
+    hdrShader.SetFloat("exposure", 5.0);
 
     // -----------------------------------
 

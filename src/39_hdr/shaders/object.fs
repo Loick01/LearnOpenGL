@@ -41,12 +41,11 @@ void main()
 {   
     vec3 normal = -1. * normalize(fs_in.Normal);
     vec3 color = texture(material.diffuse, fs_in.TexCoords).rgb;
-    vec3 ambient = 0.25 * color;
+    vec3 ambient = 0.0 * color;
 
     vec3 lightning = vec3(0.);
     for (int i = 0 ; i < 4 ; i++){
         lightning += CalcPointLight(lights[i], normal, color);
     }
-    FragColor = vec4(ambient + lightning, 1.0); // Je ne vois que du noir
-    //FragColor = texture(material.diffuse, fs_in.TexCoords); // Je vois ma texture
+    FragColor = vec4(ambient + lightning, 1.0);
 }
