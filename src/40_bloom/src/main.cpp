@@ -221,24 +221,49 @@ int main()
     glGenFramebuffers(1, &hdrFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
     
-    unsigned int colorBuffer;
-    glGenTextures(1, &colorBuffer);
-    glBindTexture(GL_TEXTURE_2D, colorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 800, 600, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    unsigned int colorBuffer[2];
+    glGenTextures(2, colorBuffer);
+    for (unsigned int i = 0 ; i < 2 ; i++){
+        glBindTexture(GL_TEXTURE_2D, colorBuffer[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 800, 600, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_TEXTURE_2D, colorBuffer[i], 0);
+    }
+
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(2, attachments);
 
     unsigned int depthRBO;
     glGenRenderbuffers(1, &depthRBO);
     glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 800, 600);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "Framebuffer not complete!" << std::endl;
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    unsigned int blurFBO[2]; // "Ping-pong" framebuffer (each has his own color buffer texture)
+    unsigned int blurColorBuffer[2];
+    glGenFramebuffers(2, blurFBO);
+    glGenTextures(2, blurColorBuffer);
+    for (unsigned int i = 0; i < 2; i++)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, blurColorBuffer[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 800, 600, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, blurColorBuffer[i], 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "Framebuffer not complete!" << std::endl;
+    }
 
     // -----------------------------------
     // LIGHTS (POSITIONS AND COLORS)
@@ -302,6 +327,7 @@ int main()
     Shader objectShader("../shaders/object.vs", "../shaders/object.fs");
     Shader hdrShader("../shaders/hdr.vs", "../shaders/hdr.fs");
     Shader lightShader("../shaders/object.vs", "../shaders/light.fs");
+    Shader blurShader("../shaders/blur.vs", "../shaders/blur.fs");
 
     objectShader.Use();
     int modelLocation = glGetUniformLocation(objectShader.m_id, "model");
@@ -316,7 +342,8 @@ int main()
     }
     
     hdrShader.Use();
-    hdrShader.SetInt("hdrBuffer", 0);
+    hdrShader.SetInt("scene", 0);
+    hdrShader.SetInt("blurScene", 1);
     hdrShader.SetFloat("exposure", 0.8);
 
     lightShader.Use();
@@ -324,6 +351,8 @@ int main()
     int lightViewLocation = glGetUniformLocation(lightShader.m_id, "view");
     int lightProjectionLocation = glGetUniformLocation(lightShader.m_id, "projection");
 
+    blurShader.Use();
+    blurShader.SetInt("image", 0);
     // -----------------------------------
 
     float deltaTime = 0.f;
@@ -391,14 +420,35 @@ int main()
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // -----------------------------------
+        // BLUR THE COLOR BUFFER 
+        bool isHorizontal = true, first_iteration = true;
+        unsigned int amount = 5;
+        blurShader.Use();
+
+        for (unsigned int i = 0; i < amount; i++) {
+            glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[isHorizontal]);
+            blurShader.SetInt("isHorizontal", isHorizontal);
+            // First iteration -> use the color buffer where we render the brightness texture, then ping pong between blurColorBuffer[0] and [1]
+            glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffer[1] : blurColorBuffer[!isHorizontal]);
+            glBindVertexArray(quadVAO);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            isHorizontal = !isHorizontal;
+            first_iteration = false;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // -----------------------------------
         // RENDER HDR COLOR BUFFER ON A 2D QUAD (USING TONE-MAPPING)
         
         hdrShader.Use();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, colorBuffer);
-        //hdrShader.SetInt("hdr", hdr);
-        //hdrShader.SetFloat("exposure", exposure);
+        // glBindTexture(GL_TEXTURE_2D, blurColorBuffer[0]);
+        glBindTexture(GL_TEXTURE_2D, colorBuffer[0]);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, blurColorBuffer[!isHorizontal]);
+
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
