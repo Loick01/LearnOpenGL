@@ -84,7 +84,7 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, mode->width, mode->height);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -158,7 +158,26 @@ int main()
 
     // -----------------------------------
 
-    unsigned int quadVBO, quadVAO, quadEBO;
+    unsigned int cubeVBO, cubeVAO, cubeEBO, quadVBO, quadVAO, quadEBO;
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    glGenBuffers(1, &cubeEBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
+    
+    glBindVertexArray(cubeVAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_STATIC_DRAW);
+
+    // QUAD OBJECT
     glGenVertexArrays(1, &quadVAO);
     glGenBuffers(1, &quadVBO);
     glGenBuffers(1, &quadEBO);
@@ -177,7 +196,6 @@ int main()
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // -----------------------------------
     
@@ -206,11 +224,11 @@ int main()
     // -----------------------------------
     // LIGHT CUBE SHADER
 
-    Shader  lightCubeShader("../shaders/lightCube.vs", "../shaders/lightCube.fs");
+    Shader lightCubeShader("../shaders/lightCube.vs", "../shaders/lightCube.fs");
     lightCubeShader.Use();
-    int modelLocationLight = glGetUniformLocation(lightCubeShader.m_id, "model");
-    int viewLocationLight = glGetUniformLocation(lightCubeShader.m_id, "view");
-    int projectionLocationLight = glGetUniformLocation(lightCubeShader.m_id, "projection");
+    int modelLocationLightCube = glGetUniformLocation(lightCubeShader.m_id, "model");
+    int viewLocationLightCube = glGetUniformLocation(lightCubeShader.m_id, "view");
+    int projectionLocationLightCube = glGetUniformLocation(lightCubeShader.m_id, "projection");
 
     // -----------------------------------
     // LIGHTING SHADER
@@ -220,6 +238,34 @@ int main()
     lightingShader.SetInt("gTextures.position", 0);
     lightingShader.SetInt("gTextures.normal", 1);
     lightingShader.SetInt("gTextures.colorSpec", 2);
+
+    // LIGHT CUBES
+    const unsigned int NR_LIGHTS = 32;
+    std::vector<glm::vec3> lightPositions;
+    std::vector<glm::vec3> lightColors;
+    srand(42);
+    for (unsigned int i = 0 ; i < NR_LIGHTS ; i++) {
+        // Random position
+        float x = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+        float y = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
+        float z = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+        lightPositions.push_back(glm::vec3(x, y, z));
+        
+        // Random color
+        float r = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // [0.5, 1.] 
+        float g = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // [0.5, 1.] 
+        float b = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // [0.5, 1.] 
+        lightColors.push_back(glm::vec3(r, g, b));
+    }
+
+    const float linear = 0.35;
+    const float quadratic = 0.44f;
+    for (unsigned int i = 0 ; i < NR_LIGHTS ; i++) {
+        lightingShader.SetVec3("lights[" + std::to_string(i) + "].position", lightPositions[i]);
+        lightingShader.SetVec3("lights[" + std::to_string(i) + "].color", lightColors[i]);
+        lightingShader.SetFloat("lights[" + std::to_string(i) + "].linear", linear);
+        lightingShader.SetFloat("lights[" + std::to_string(i) + "].quadratic", quadratic);
+    }
 
     // -----------------------------------
     // G-BUFFER
@@ -313,27 +359,38 @@ int main()
         glBindTexture(GL_TEXTURE_2D, gNormal);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, gColorSpec);
+        lightingShader.SetVec3("viewPos", camera.Position);
 
+        glDisable(GL_DEPTH_TEST); // Depth test must be disabled when rendering the quad, otherwise light cube will be rendered behind
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glEnable(GL_DEPTH_TEST);
 
         // -----------------------------------
-        // LIGHT CUBES
+        // Copy the content of the depth buffer from gBuffer into the depth buffer of the default framebuffer
+        // Light cubes will be only rendered when on top of the previously rendered geometry 
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, mode->width, mode->height, 0, 0, mode->width, mode->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        // -----------------------------------
+        // RENDER LIGHT CUBES
 
-        // lightCubeShader.Use();
+        lightCubeShader.Use();
 
-        // glUniformMatrix4fv(projectionLocationLight, 1, GL_FALSE, glm::value_ptr(projection));
-        // glUniformMatrix4fv(viewLocationLight, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projectionLocationLightCube, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(viewLocationLightCube, 1, GL_FALSE, glm::value_ptr(view));
 
-        // glBindVertexArray(lightVAO);
-        // for (unsigned int i = 0 ; i < 4 ; i++){
-        //     glm::mat4 light_model = glm::mat4(1.f);
-        //     light_model = glm::translate(light_model, pointLightPositions[i]);
-        //     light_model = glm::scale(light_model, glm::vec3(0.2f));
-        //     glUniformMatrix4fv(modelLocationLight, 1, GL_FALSE, glm::value_ptr(light_model));
-        //     lightCubeShader.SetVec3("lightColor", pointLightColors[i]);
-        //     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        // }
+        glBindVertexArray(cubeVAO);
+        for (unsigned int i = 0 ; i < NR_LIGHTS ; i++){
+            glm::mat4 lightCubeModel = glm::mat4(1.f);
+            lightCubeModel = glm::translate(lightCubeModel, lightPositions[i]);
+            lightCubeModel = glm::scale(lightCubeModel, glm::vec3(0.2f));
+            glUniformMatrix4fv(modelLocationLightCube, 1, GL_FALSE, glm::value_ptr(lightCubeModel));
+            lightCubeShader.SetVec3("lightColor", lightColors[i]);
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        }
 
         // -----------------------------------
 
