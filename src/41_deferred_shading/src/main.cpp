@@ -5,7 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 #include "camera.hpp"
 #include "mesh.hpp"
@@ -258,13 +258,18 @@ int main()
         lightColors.push_back(glm::vec3(r, g, b));
     }
 
-    const float linear = 0.35;
-    const float quadratic = 0.44f;
+    const float constant = 1.f;
+    const float linear = 0.7;
+    const float quadratic = 1.8f;
+
     for (unsigned int i = 0 ; i < NR_LIGHTS ; i++) {
+        const float lightMax = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
+        const float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (lightMax * 256./5.)))) / 2*quadratic;
         lightingShader.SetVec3("lights[" + std::to_string(i) + "].position", lightPositions[i]);
         lightingShader.SetVec3("lights[" + std::to_string(i) + "].color", lightColors[i]);
         lightingShader.SetFloat("lights[" + std::to_string(i) + "].linear", linear);
         lightingShader.SetFloat("lights[" + std::to_string(i) + "].quadratic", quadratic);
+        lightingShader.SetFloat("lights[" + std::to_string(i) + "].radius", radius);
     }
 
     // -----------------------------------
