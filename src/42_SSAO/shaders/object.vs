@@ -11,12 +11,13 @@ out vec2 TexCoords;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform bool isNormalInverted;
 
 void main()
 {
     vec4 viewPos = view * model * vec4(aPos, 1.0);
     FragPos = viewPos.xyz;
     gl_Position = projection * viewPos;
-    Normal = transpose(inverse(mat3(view * model))) * aNormal;  
+    Normal = transpose(inverse(mat3(view * model))) * (isNormalInverted ? -aNormal : aNormal);  
     TexCoords = aTexCoords;
 };

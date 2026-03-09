@@ -19,5 +19,5 @@ void main()
 {
     gPosition = FragPos;
     gNormal = normalize(Normal);
-    gColorSpec.rgb = gNormal;
+    gColorSpec.rgb = vec3(0.95);
 }

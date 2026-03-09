@@ -227,15 +227,6 @@ int main()
     int projectionLocation = glGetUniformLocation(objectShader.m_id, "projection");
 
     // -----------------------------------
-    // LIGHT CUBE SHADER
-
-    Shader lightCubeShader("../shaders/lightCube.vs", "../shaders/lightCube.fs");
-    lightCubeShader.Use();
-    int modelLocationLightCube = glGetUniformLocation(lightCubeShader.m_id, "model");
-    int viewLocationLightCube = glGetUniformLocation(lightCubeShader.m_id, "view");
-    int projectionLocationLightCube = glGetUniformLocation(lightCubeShader.m_id, "projection");
-
-    // -----------------------------------
     // LIGHTING SHADER
 
     Shader lightingShader("../shaders/lighting.vs", "../shaders/lighting.fs");
@@ -243,39 +234,31 @@ int main()
     lightingShader.SetInt("gTextures.position", 0);
     lightingShader.SetInt("gTextures.normal", 1);
     lightingShader.SetInt("gTextures.colorSpec", 2);
+    lightingShader.SetInt("gTextures.ssao", 3);
 
-    // LIGHT CUBES
-    const unsigned int NR_LIGHTS = 32;
-    std::vector<glm::vec3> lightPositions;
-    std::vector<glm::vec3> lightColors;
-    srand(42);
-    for (unsigned int i = 0 ; i < NR_LIGHTS ; i++) {
-        // Random position
-        float x = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-        float y = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
-        float z = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-        lightPositions.push_back(glm::vec3(x, y, z));
-        
-        // Random color
-        float r = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // [0.5, 1.] 
-        float g = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // [0.5, 1.] 
-        float b = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // [0.5, 1.] 
-        lightColors.push_back(glm::vec3(r, g, b));
-    }
+    const glm::vec3 lightPos = glm::vec3(2., 4., -2.);
+    const glm::vec3 lightColor = glm::vec3(0.2, 0.2, 0.7);
+    const float linear = 0.07;
+    const float quadratic = 0.08f;
 
-    const float constant = 1.f;
-    const float linear = 0.7;
-    const float quadratic = 1.8f;
+    lightingShader.SetVec3("light.color", lightColor);
+    lightingShader.SetFloat("light.linear", linear);
+    lightingShader.SetFloat("light.quadratic", quadratic);
 
-    for (unsigned int i = 0 ; i < NR_LIGHTS ; i++) {
-        const float lightMax = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
-        const float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (lightMax * 256./5.)))) / 2*quadratic;
-        lightingShader.SetVec3("lights[" + std::to_string(i) + "].position", lightPositions[i]);
-        lightingShader.SetVec3("lights[" + std::to_string(i) + "].color", lightColors[i]);
-        lightingShader.SetFloat("lights[" + std::to_string(i) + "].linear", linear);
-        lightingShader.SetFloat("lights[" + std::to_string(i) + "].quadratic", quadratic);
-        lightingShader.SetFloat("lights[" + std::to_string(i) + "].radius", radius);
-    }
+    // -----------------------------------
+    // SSAO SHADER
+
+    Shader ssaoShader("../shaders/ssao.vs", "../shaders/ssao.fs");
+    ssaoShader.Use();
+    ssaoShader.SetInt("gTextures.position", 0);
+    ssaoShader.SetInt("gTextures.normal", 1);
+    ssaoShader.SetInt("gTextures.noise", 2);
+    ssaoShader.SetFloat("screenWidth", mode->width);
+    ssaoShader.SetFloat("screenHeight", mode->height);
+
+    Shader ssaoBlurShader("../shaders/ssao.vs", "../shaders/ssaoBlur.fs");
+    ssaoBlurShader.Use();
+    ssaoBlurShader.SetInt("ssaoTexture", 0);
 
     // -----------------------------------
     // G-BUFFER
@@ -323,6 +306,30 @@ int main()
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "Framebuffer not complete!\n";
     
+    // -----------------------------------
+    // SSAO FRAMEBUFFER 
+    unsigned int ssaoFBO, ssaoColorBuffer;
+    glGenFramebuffers(1, &ssaoFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+
+    glGenTextures(1, &ssaoColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, mode->width, mode->height, 0, GL_RED, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
+
+    unsigned int ssaoBlurFBO, ssaoBlurColorBuffer;
+    glGenFramebuffers(1, &ssaoBlurFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+
+    glGenTextures(1, &ssaoBlurColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, ssaoBlurColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, mode->width, mode->height, 0, GL_RED, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoBlurColorBuffer, 0);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // -----------------------------------
@@ -387,29 +394,75 @@ int main()
         glm::mat4 view = glm::lookAt(camera.Position, camera.Position+camera.Front, camera.Up); 
         glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
 
-        // -----------------------------------
-        // OBJECT
-        
+        // Draw a cube
         glm::mat4 model = glm::mat4(1.0f);
-        for (unsigned int i = 0 ; i < objectPositions.size() ; i++){
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, objectPositions[i]);
-            model = glm::scale(model, glm::vec3(0.5f));
-            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
-            backpack_model.Draw(objectShader);
-        }
+        model = glm::translate(model, glm::vec3(0., 7.f, 0.f));
+        model = glm::scale(model, glm::vec3(7.5f, 7.5f, 7.5f));
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        objectShader.SetInt("isNormalInverted", 1);
+        glCullFace(GL_FRONT);
+        glBindVertexArray(cubeVAO);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        objectShader.SetInt("isNormalInverted", 0); 
+        glCullFace(GL_BACK);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.f, 0.5f, 0.f));
+        model = glm::rotate(model, glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
+        model = glm::scale(model, glm::vec3(1.f));
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        backpack_model.Draw(objectShader);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        // -----------------------------------
+        // SSAO TEXTURE
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ssaoShader.Use();
+
+        for (unsigned int i = 0; i < 64; ++i)
+            ssaoShader.SetVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
+        ssaoShader.SetMat4("projection", projection);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, gPosition);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, gNormal);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, noiseTexture);
+
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        // -----------------------------------
+        // BLUR SSAO TEXTURE
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ssaoBlurShader.Use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); // quadVao is already bind
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // -----------------------------------
+        // LIGHTING PASS
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         lightingShader.Use();
+        lightingShader.SetVec3("light.position", view * glm::vec4(lightPos, 1.)); // Send light position in view space
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, gPosition);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, gNormal);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, gColorSpec);
-        lightingShader.SetVec3("viewPos", camera.Position);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, ssaoBlurColorBuffer); // Use ssaoColorBuffer for not blur texture
 
         glDisable(GL_DEPTH_TEST); // Depth test must be disabled when rendering the quad, otherwise light cube will be rendered behind
         glBindVertexArray(quadVAO);
@@ -423,24 +476,6 @@ int main()
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(0, 0, mode->width, mode->height, 0, 0, mode->width, mode->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        
-        // -----------------------------------
-        // RENDER LIGHT CUBES
-
-        lightCubeShader.Use();
-
-        glUniformMatrix4fv(projectionLocationLightCube, 1, GL_FALSE, glm::value_ptr(projection));
-        glUniformMatrix4fv(viewLocationLightCube, 1, GL_FALSE, glm::value_ptr(view));
-
-        glBindVertexArray(cubeVAO);
-        for (unsigned int i = 0 ; i < NR_LIGHTS ; i++){
-            glm::mat4 lightCubeModel = glm::mat4(1.f);
-            lightCubeModel = glm::translate(lightCubeModel, lightPositions[i]);
-            lightCubeModel = glm::scale(lightCubeModel, glm::vec3(0.2f));
-            glUniformMatrix4fv(modelLocationLightCube, 1, GL_FALSE, glm::value_ptr(lightCubeModel));
-            lightCubeShader.SetVec3("lightColor", lightColors[i]);
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        }
 
         // -----------------------------------
 
